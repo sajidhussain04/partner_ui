@@ -1,10 +1,11 @@
-// ignore_for_file: prefer_const_constructors
+﻿// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/config/partner_session.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/auth_widgets.dart';
@@ -17,32 +18,49 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
   bool _loading = false;
 
-  /// -------------------------------------------------------------------------
-  /// STATIC LOGIN
-  ///
-  /// There is intentionally no email/password authentication at this stage.
-  ///
-  /// Clicking SIGN IN:
-  ///   1. Marks the partner as logged in.
-  ///   2. Navigates directly to the Overview screen.
-  ///
-  /// Real authentication can be connected later without changing the
-  /// application's route structure.
-  /// -------------------------------------------------------------------------
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (_loading) return;
 
     setState(() {
       _loading = true;
     });
 
-    AuthSession.login();
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
 
-    context.go(AppRoutes.overview);
+      if (email.isEmpty || password.isEmpty) {
+        throw Exception('Please enter your email and password.');
+      }
+
+      await PartnerSession.signIn(
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
+
+      context.go(AppRoutes.overview);
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sign in failed: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
-
   @override
   Widget build(BuildContext context) {
     final bool isWide = MediaQuery.of(context).size.width >= 800;
@@ -129,7 +147,31 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 36),
 
         // ---------------------------------------------------------------------
-        // STATIC LOGIN INFORMATION
+        AuthField(
+          label: 'EMAIL',
+          hint: 'Enter your email',
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ).animate().fadeIn(
+              duration: 380.ms,
+              delay: 80.ms,
+            ),
+
+        const SizedBox(height: 18),
+
+        AuthField(
+          label: 'PASSWORD',
+          hint: 'Enter your password',
+          controller: _passwordController,
+          obscure: true,
+        ).animate().fadeIn(
+              duration: 380.ms,
+              delay: 120.ms,
+            ),
+
+        const SizedBox(height: 28),
+
+        // PARTNER ACCESS INFORMATION
         // ---------------------------------------------------------------------
 
         Container(
@@ -169,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      'Continue directly to your partner dashboard.',
+                      'Sign in with your approved partner account to access the dashboard.',
                       style: AppTypography.bodySM.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.4,
@@ -297,7 +339,7 @@ class _BrandPanel extends StatelessWidget {
           const SizedBox(height: 20),
 
           Text(
-            'Manage appointments, track revenue, and\ndelight your clients — all in one place.',
+            'Manage appointments, track revenue, and\ndelight your clients â€” all in one place.',
             style: AppTypography.bodyLG.copyWith(
               color: Colors.white.withValues(alpha: 0.6),
               height: 1.6,
@@ -450,3 +492,10 @@ class _MobileHeader extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+

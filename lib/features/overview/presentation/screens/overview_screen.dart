@@ -1,66 +1,193 @@
-// ignore_for_file: prefer_const_constructors
-// ignore_for_file: prefer_const_literals_to_create_immutables
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/config/partner_session.dart';
+import '../../../../core/data/partner_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
-/// Partner Dashboard — Overview screen.
-class OverviewScreen extends StatelessWidget {
+class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
+
+  @override
+  State<OverviewScreen> createState() => _OverviewScreenState();
+}
+
+class _OverviewScreenState extends State<OverviewScreen> {
+  final PartnerRepository _repository = PartnerRepository.instance;
+
+  bool _loading = true;
+  String? _errorMessage;
+
+  int _totalBookings = 0;
+  int _pendingBookings = 0;
+  int _confirmedBookings = 0;
+  int _completedBookings = 0;
+  int _cancelledBookings = 0;
+
+  List<_ServicePreviewData> _services = [];
+  List<_BookingData> _recentBookings = [];
+
+  int? get _vendorId => PartnerSession.vendorId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOverview();
+  }
+
+  Future<void> _loadOverview() async {
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage = 'Partner session was not found. Please log in again.';
+      });
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final data = await _repository.vendorOverview(vendorId);
+
+      final bookingRows =
+          List<Map<String, dynamic>>.from(data['bookings'] as List);
+
+      final serviceRows =
+          List<Map<String, dynamic>>.from(data['services'] as List);
+
+      final recentRows = bookingRows.take(4).map(_BookingData.fromMap).toList();
+
+      final servicePreviews =
+          serviceRows.take(4).map(_ServicePreviewData.fromMap).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _totalBookings = (data['totalBookings'] as num).toInt();
+        _pendingBookings = (data['pendingBookings'] as num).toInt();
+        _confirmedBookings = (data['confirmedBookings'] as num).toInt();
+        _completedBookings = (data['completedBookings'] as num).toInt();
+        _cancelledBookings = (data['cancelledBookings'] as num).toInt();
+
+        _recentBookings = recentRows;
+        _services = servicePreviews;
+
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage = _friendlyError(e);
+      });
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final message = error.toString();
+
+    if (message.contains('SocketException') ||
+        message.contains('Failed host lookup')) {
+      return 'Unable to connect to Supabase. Check your internet connection.';
+    }
+
+    if (message.contains('permission denied') ||
+        message.contains('row-level security')) {
+      return 'You do not have permission to view this partner data.';
+    }
+
+    return 'Unable to load the dashboard. Please try again.';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isMobile = constraints.maxWidth < 600;
+      body: RefreshIndicator(
+        onRefresh: _loadOverview,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 16 : 28,
-              vertical: 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Do NOT make this const because flutter_animate
-                // modifies the widget with an animation extension.
-                _PageHeader()
-                    .animate()
-                    .fadeIn(duration: 350.ms)
-                    .slideY(
-                      begin: -0.08,
-                      end: 0,
-                    ),
+            if (_loading) {
+              return const SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: 600,
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              );
+            }
 
-                const SizedBox(height: 24),
+            if (_errorMessage != null) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 28,
+                  vertical: 24,
+                ),
+                children: [
+                  const _PageHeader(),
+                  const SizedBox(height: 24),
+                  _OverviewError(
+                    message: _errorMessage!,
+                    onRetry: _loadOverview,
+                  ),
+                ],
+              );
+            }
 
-                const _RevenueSection(),
-
-                const SizedBox(height: 24),
-
-                const _OverviewMainGrid(),
-
-                const SizedBox(height: 24),
-
-                const _RecentBookingsCard(),
-
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 28,
+                vertical: 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _PageHeader().animate().fadeIn(duration: 350.ms).slideY(
+                        begin: -0.08,
+                        end: 0,
+                      ),
+                  const SizedBox(height: 24),
+                  const _RevenueSection(),
+                  const SizedBox(height: 24),
+                  _OverviewMainGrid(
+                    totalBookings: _totalBookings,
+                    pendingBookings: _pendingBookings,
+                    confirmedBookings: _confirmedBookings,
+                    completedBookings: _completedBookings,
+                    cancelledBookings: _cancelledBookings,
+                    services: _services,
+                  ),
+                  const SizedBox(height: 24),
+                  _RecentBookingsCard(
+                    bookings: _recentBookings,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 }
-
-// ─── Page Header ──────────────────────────────────────────────────────────────
 
 class _PageHeader extends StatelessWidget {
   const _PageHeader();
@@ -84,8 +211,6 @@ class _PageHeader extends StatelessWidget {
   }
 }
 
-// ─── Revenue Section ──────────────────────────────────────────────────────────
-
 class _RevenueSection extends StatelessWidget {
   const _RevenueSection();
 
@@ -93,22 +218,22 @@ class _RevenueSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final int crossAxisCount = constraints.maxWidth >= 900 ? 3 : 1;
+        final crossAxisCount = constraints.maxWidth >= 900 ? 3 : 1;
 
-        const List<_RevenueData> revenueItems = [
+        const revenueItems = [
           _RevenueData(
             title: "TODAY'S REVENUE",
-            value: '₹ 0',
+            value: 'Unavailable',
             icon: Icons.payments_outlined,
           ),
           _RevenueData(
             title: 'WEEKLY REVENUE',
-            value: '₹ 300',
+            value: 'Unavailable',
             icon: Icons.trending_up_rounded,
           ),
           _RevenueData(
             title: 'MONTHLY REVENUE',
-            value: '₹ 300',
+            value: 'Unavailable',
             icon: Icons.bar_chart_rounded,
           ),
         ];
@@ -229,37 +354,65 @@ class _RevenueCard extends StatelessWidget {
   }
 }
 
-// ─── Main Overview Grid ───────────────────────────────────────────────────────
-
 class _OverviewMainGrid extends StatelessWidget {
-  const _OverviewMainGrid();
+  const _OverviewMainGrid({
+    required this.totalBookings,
+    required this.pendingBookings,
+    required this.confirmedBookings,
+    required this.completedBookings,
+    required this.cancelledBookings,
+    required this.services,
+  });
+
+  final int totalBookings;
+  final int pendingBookings;
+  final int confirmedBookings;
+  final int completedBookings;
+  final int cancelledBookings;
+  final List<_ServicePreviewData> services;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth >= 800;
+        final isWide = constraints.maxWidth >= 800;
 
         if (!isWide) {
-          return const Column(
+          return Column(
             children: [
-              _BookingStatisticsCard(),
-              SizedBox(height: 16),
-              _ActiveServicesCard(),
+              _BookingStatisticsCard(
+                total: totalBookings,
+                pending: pendingBookings,
+                confirmed: confirmedBookings,
+                completed: completedBookings,
+                cancelled: cancelledBookings,
+              ),
+              const SizedBox(height: 16),
+              _ActiveServicesCard(
+                services: services,
+              ),
             ],
           );
         }
 
-        return const Row(
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               flex: 2,
-              child: _BookingStatisticsCard(),
+              child: _BookingStatisticsCard(
+                total: totalBookings,
+                pending: pendingBookings,
+                confirmed: confirmedBookings,
+                completed: completedBookings,
+                cancelled: cancelledBookings,
+              ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
-              child: _ActiveServicesCard(),
+              child: _ActiveServicesCard(
+                services: services,
+              ),
             ),
           ],
         );
@@ -268,41 +421,36 @@ class _OverviewMainGrid extends StatelessWidget {
   }
 }
 
-// ─── Booking Statistics ───────────────────────────────────────────────────────
-
 class _BookingStatisticsCard extends StatelessWidget {
-  const _BookingStatisticsCard();
+  const _BookingStatisticsCard({
+    required this.total,
+    required this.pending,
+    required this.confirmed,
+    required this.completed,
+    required this.cancelled,
+  });
+
+  final int total;
+  final int pending;
+  final int confirmed;
+  final int completed;
+  final int cancelled;
 
   @override
   Widget build(BuildContext context) {
-    const List<(String, String, Color)> stats = [
-      (
-        'TOTAL',
-        '6',
-        AppColors.textPrimary,
-      ),
-      (
-        'CONFIRMED',
-        '1',
-        AppColors.confirmedText,
-      ),
-      (
-        'COMPLETED',
-        '4',
-        AppColors.completedText,
-      ),
-      (
-        'CANCELLED',
-        '1',
-        AppColors.cancelledText,
-      ),
+    final stats = [
+      ('TOTAL', total.toString(), AppColors.textPrimary),
+      ('PENDING', pending.toString(), AppColors.pendingText),
+      ('CONFIRMED', confirmed.toString(), AppColors.confirmedText),
+      ('COMPLETED', completed.toString(), AppColors.completedText),
+      ('CANCELLED', cancelled.toString(), AppColors.cancelledText),
     ];
 
     return _DashboardCard(
       title: 'Booking Statistics',
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bool isSmall = constraints.maxWidth < 360;
+          final isSmall = constraints.maxWidth < 360;
 
           if (!isSmall) {
             return Row(
@@ -375,37 +523,74 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-// ─── Active Services ──────────────────────────────────────────────────────────
-
 class _ActiveServicesCard extends StatelessWidget {
-  const _ActiveServicesCard();
+  const _ActiveServicesCard({
+    required this.services,
+  });
+
+  final List<_ServicePreviewData> services;
 
   @override
   Widget build(BuildContext context) {
     return _DashboardCard(
       title: 'Active Services',
       trailing: Text(
-        '2 ACTIVE',
+        '${services.length} ACTIVE',
         style: AppTypography.labelXS.copyWith(
           color: AppColors.confirmedText,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _ServicePreview(
-            name: 'Royal Beard Trim',
-            price: '₹ 150',
-            duration: '30 min',
-          ),
-          const SizedBox(height: 10),
-          const _ServicePreview(
-            name: 'Balayage Highlights',
-            price: '₹ 1,200',
-            duration: '120 min',
-          ),
-        ],
-      ),
+      child: services.isEmpty
+          ? Text(
+              'No services found.',
+              style: AppTypography.bodySM,
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: services.map((service) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ServicePreview(
+                    name: service.name,
+                    price: service.price,
+                    duration: service.duration,
+                  ),
+                );
+              }).toList(),
+            ),
+    );
+  }
+}
+
+class _ServicePreviewData {
+  const _ServicePreviewData({
+    required this.name,
+    required this.price,
+    required this.duration,
+  });
+
+  final String name;
+  final String price;
+  final String duration;
+
+  factory _ServicePreviewData.fromMap(Map<String, dynamic> map) {
+    final rawPrice = map['price'];
+
+    String price;
+
+    if (rawPrice is num) {
+      price = '₹ ';
+    } else {
+      price =
+          'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ ${rawPrice?.toString() ?? '0'}';
+    }
+
+    return _ServicePreviewData(
+      name: map['title']?.toString() ?? 'Untitled service',
+      price: price,
+      duration: map['duration']?.toString().isNotEmpty == true
+          ? '${map['duration']} min'
+          : 'Duration not set',
     );
   }
 }
@@ -428,32 +613,41 @@ class _ServicePreview extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.categoryBadgeBg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelMD,
+                  style: AppTypography.bodySM,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(
                   duration,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.bodyXS,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            price,
-            style: AppTypography.priceLG,
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: AppTypography.bodySM,
+            ),
           ),
         ],
       ),
@@ -461,86 +655,86 @@ class _ServicePreview extends StatelessWidget {
   }
 }
 
-// ─── Recent Bookings ──────────────────────────────────────────────────────────
-
 class _RecentBookingsCard extends StatelessWidget {
-  const _RecentBookingsCard();
+  const _RecentBookingsCard({
+    required this.bookings,
+  });
+
+  final List<_BookingData> bookings;
 
   @override
   Widget build(BuildContext context) {
-    const List<(String, String, String, String)> recentBookings = [
-      (
-        'Arjun Sharma',
-        'Royal Beard Trim',
-        '2026-08-05',
-        'CONFIRMED',
-      ),
-      (
-        'Priya Mehta',
-        'Balayage Highlights',
-        '2026-08-05',
-        'CONFIRMED',
-      ),
-      (
-        'Rohit Verma',
-        'Classic Haircut',
-        '2026-08-04',
-        'COMPLETED',
-      ),
-      (
-        'Deepak Kumar',
-        'Royal Beard Trim',
-        '2026-08-03',
-        'CANCELLED',
-      ),
-    ];
-
     return _DashboardCard(
       title: 'Recent Bookings',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isMobile = constraints.maxWidth < 600;
+      child: bookings.isEmpty
+          ? Text(
+              'No bookings found.',
+              style: AppTypography.bodySM,
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 600;
 
-          if (isMobile) {
-            return Column(
-              children: recentBookings.asMap().entries.map((entry) {
-                final booking = entry.value;
+                if (isMobile) {
+                  return Column(
+                    children: bookings.asMap().entries.map((entry) {
+                      return _MobileBookingCard(
+                        booking: entry.value,
+                        index: entry.key,
+                      );
+                    }).toList(),
+                  );
+                }
 
-                return _MobileBookingCard(
-                  client: booking.$1,
-                  service: booking.$2,
-                  date: booking.$3,
-                  status: booking.$4,
-                  index: entry.key,
+                return _DesktopBookingsTable(
+                  bookings: bookings,
                 );
-              }).toList(),
-            );
-          }
-
-          return _DesktopBookingsTable(
-            bookings: recentBookings,
-          );
-        },
-      ),
+              },
+            ),
     );
   }
 }
 
-// ─── Desktop Bookings Table ───────────────────────────────────────────────────
+class _BookingData {
+  const _BookingData({
+    required this.client,
+    required this.service,
+    required this.date,
+    required this.status,
+  });
+
+  final String client;
+  final String service;
+  final String date;
+  final String status;
+
+  factory _BookingData.fromMap(Map<String, dynamic> map) {
+    final rawStatus = map['status']?.toString() ?? 'Pending';
+
+    final status = rawStatus.toUpperCase();
+
+    return _BookingData(
+      client: map['client_name']?.toString().trim().isNotEmpty == true
+          ? map['client_name'].toString()
+          : map['user_email']?.toString() ?? 'Unknown client',
+      service: map['service_title']?.toString() ?? 'Unknown service',
+      date: map['date']?.toString() ?? 'Date unavailable',
+      status: status,
+    );
+  }
+}
 
 class _DesktopBookingsTable extends StatelessWidget {
   const _DesktopBookingsTable({
     required this.bookings,
   });
 
-  final List<(String, String, String, String)> bookings;
+  final List<_BookingData> bookings;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // NOT const:
-        // AppTypography.tableHeader is a runtime getter.
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: 12,
@@ -568,31 +762,23 @@ class _DesktopBookingsTable extends StatelessWidget {
                   style: AppTypography.tableHeader,
                 ),
               ),
-              SizedBox(
+              const SizedBox(
                 width: 110,
                 child: Text(
                   'STATUS',
-                  style: AppTypography.tableHeader,
                   textAlign: TextAlign.right,
                 ),
               ),
             ],
           ),
         ),
-
         const Divider(
           height: 1,
           color: AppColors.divider,
         ),
-
         ...bookings.asMap().entries.map((entry) {
-          final booking = entry.value;
-
           return _BookingRow(
-            client: booking.$1,
-            service: booking.$2,
-            date: booking.$3,
-            status: booking.$4,
+            booking: entry.value,
             index: entry.key,
           );
         }),
@@ -601,21 +787,13 @@ class _DesktopBookingsTable extends StatelessWidget {
   }
 }
 
-// ─── Desktop Booking Row ──────────────────────────────────────────────────────
-
 class _BookingRow extends StatelessWidget {
   const _BookingRow({
-    required this.client,
-    required this.service,
-    required this.date,
-    required this.status,
+    required this.booking,
     required this.index,
   });
 
-  final String client;
-  final String service;
-  final String date;
-  final String status;
+  final _BookingData booking;
   final int index;
 
   @override
@@ -630,7 +808,7 @@ class _BookingRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              client,
+              booking.client,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.tableCell,
@@ -639,7 +817,7 @@ class _BookingRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              service,
+              booking.service,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.tableCellSub,
@@ -647,7 +825,7 @@ class _BookingRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              date,
+              booking.date,
               style: AppTypography.tableCellSub,
             ),
           ),
@@ -656,15 +834,13 @@ class _BookingRow extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: _StatusChip(
-                status: status,
+                status: booking.status,
               ),
             ),
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(
+    ).animate().fadeIn(
           duration: 280.ms,
           delay: Duration(
             milliseconds: 380 + index * 60,
@@ -673,21 +849,13 @@ class _BookingRow extends StatelessWidget {
   }
 }
 
-// ─── Mobile Booking Card ──────────────────────────────────────────────────────
-
 class _MobileBookingCard extends StatelessWidget {
   const _MobileBookingCard({
-    required this.client,
-    required this.service,
-    required this.date,
-    required this.status,
+    required this.booking,
     required this.index,
   });
 
-  final String client;
-  final String service;
-  final String date;
-  final String status;
+  final _BookingData booking;
   final int index;
 
   @override
@@ -708,7 +876,7 @@ class _MobileBookingCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  client,
+                  booking.client,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.tableCell.copyWith(
@@ -718,36 +886,30 @@ class _MobileBookingCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               _StatusChip(
-                status: status,
+                status: booking.status,
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            service,
+            booking.service,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppTypography.bodySM,
           ),
           const SizedBox(height: 4),
           Text(
-            date,
+            booking.date,
             style: AppTypography.tableCellSub,
           ),
         ],
       ),
-    )
-        .animate()
-        .fadeIn(
+    ).animate().fadeIn(
           duration: 280.ms,
-          delay: Duration(
-            milliseconds: 380 + index * 60,
-          ),
+          delay: Duration(milliseconds: 380 + index * 60),
         );
   }
 }
-
-// ─── Status Chip ──────────────────────────────────────────────────────────────
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({
@@ -766,17 +928,14 @@ class _StatusChip extends StatelessWidget {
         background = AppColors.confirmedBg;
         foreground = AppColors.confirmedText;
         break;
-
       case 'COMPLETED':
         background = AppColors.completedBg;
         foreground = AppColors.completedText;
         break;
-
       case 'CANCELLED':
         background = AppColors.cancelledBg;
         foreground = AppColors.cancelledText;
         break;
-
       default:
         background = AppColors.pendingBg;
         foreground = AppColors.pendingText;
@@ -801,7 +960,36 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
-// ─── Shared Dashboard Card ────────────────────────────────────────────────────
+class _OverviewError extends StatelessWidget {
+  const _OverviewError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      title: 'Dashboard unavailable',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message,
+            style: AppTypography.bodySM,
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('RETRY'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _DashboardCard extends StatelessWidget {
   const _DashboardCard({

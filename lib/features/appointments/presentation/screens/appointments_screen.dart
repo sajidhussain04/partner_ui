@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+
+import '../../../../core/config/partner_session.dart';
+import '../../../../core/data/partner_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
-// ─── Data model ────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Data model ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 enum AppointmentStatus { confirmed, completed, cancelled, pending }
 
-// mutable copy so status changes are reflected in the UI
 class _Appointment {
   _Appointment({
+    required this.id,
     required this.clientName,
     required this.clientEmail,
     required this.service,
@@ -16,66 +19,42 @@ class _Appointment {
     required this.time,
     required this.status,
   });
+
+  final int id;
   final String clientName;
   final String clientEmail;
   final String service;
   final String date;
   final String time;
-  AppointmentStatus status; // mutable — updated when partner taps action
+  AppointmentStatus status;
+
+  factory _Appointment.fromMap(Map<String, dynamic> map) {
+    return _Appointment(
+      id: (map['id'] as num).toInt(),
+      clientName: map['client_name']?.toString() ?? 'Guest',
+      clientEmail: map['user_email']?.toString() ?? '',
+      service: map['service_title']?.toString() ?? 'Service',
+      date: map['date']?.toString() ?? '',
+      time: map['time']?.toString() ?? '',
+      status: _statusFromDatabase(map['status']),
+    );
+  }
+
+  static AppointmentStatus _statusFromDatabase(dynamic value) {
+    switch (value?.toString().toLowerCase()) {
+      case 'confirmed':
+        return AppointmentStatus.confirmed;
+      case 'completed':
+        return AppointmentStatus.completed;
+      case 'cancelled':
+        return AppointmentStatus.cancelled;
+      case 'pending':
+      default:
+        return AppointmentStatus.pending;
+    }
+  }
 }
 
-List<_Appointment> _mockAppointments() => [
-  _Appointment(
-    clientName: 'Arjun Sharma',
-    clientEmail: 'arjun.sharma@gmail.com',
-    service: 'Royal Beard Trim',
-    date: '2026-08-05',
-    time: '10:00 AM',
-    status: AppointmentStatus.confirmed,
-  ),
-  _Appointment(
-    clientName: 'Priya Mehta',
-    clientEmail: 'priya.mehta@gmail.com',
-    service: 'Balayage Highlights',
-    date: '2026-08-05',
-    time: '11:30 AM',
-    status: AppointmentStatus.confirmed,
-  ),
-  _Appointment(
-    clientName: 'Rohit Verma',
-    clientEmail: 'rohit.verma@gmail.com',
-    service: 'Moroccan Hair Spa',
-    date: '2026-08-04',
-    time: '02:00 PM',
-    status: AppointmentStatus.completed,
-  ),
-  _Appointment(
-    clientName: 'Sneha Patel',
-    clientEmail: 'sneha.patel@gmail.com',
-    service: 'Classic Facial',
-    date: '2026-08-04',
-    time: '04:30 PM',
-    status: AppointmentStatus.completed,
-  ),
-  _Appointment(
-    clientName: 'Deepak Kumar',
-    clientEmail: 'deepak.kumar@gmail.com',
-    service: 'Deep Hair Treatment',
-    date: '2026-08-03',
-    time: '12:00 PM',
-    status: AppointmentStatus.cancelled,
-  ),
-  _Appointment(
-    clientName: 'Ananya Singh',
-    clientEmail: 'ananya.singh@gmail.com',
-    service: 'Nail Art & Polish',
-    date: '2026-08-06',
-    time: '09:30 AM',
-    status: AppointmentStatus.pending,
-  ),
-];
-
-// ─── Screen ────────────────────────────────────────────────────────────────────
 class AppointmentsScreen extends StatefulWidget {
   const AppointmentsScreen({super.key});
 
@@ -84,33 +63,207 @@ class AppointmentsScreen extends StatefulWidget {
 }
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
-  late final List<_Appointment> _appointments = _mockAppointments();
+  final PartnerRepository _repository = PartnerRepository.instance;
 
-  void _updateStatus(_Appointment appt, AppointmentStatus newStatus) {
-    setState(() => appt.status = newStatus);
+  List<_Appointment> _appointments = [];
+  bool _loading = true;
+  String? _errorMessage;
 
-    final label = switch (newStatus) {
-      AppointmentStatus.confirmed  => 'Appointment confirmed ✔',
-      AppointmentStatus.completed  => 'Marked as completed ✔',
-      AppointmentStatus.cancelled  => 'Appointment cancelled',
-      AppointmentStatus.pending    => 'Moved to pending',
+  int? get _vendorId => PartnerSession.vendorId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage =
+            'Your Partner session is not available. Please log in again.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rows = await _repository.vendorBookings(vendorId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _appointments = rows.map(_Appointment.fromMap).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage = _friendlyError(e);
+      });
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('permission') ||
+        message.contains('row-level security') ||
+        message.contains('rls')) {
+      return 'You do not have permission to access your appointments.';
+    }
+
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('network')) {
+      return 'Unable to connect to the server. Check your internet connection.';
+    }
+
+    return 'Unable to load appointments. Please try again.';
+  }
+
+  Future<void> _updateStatus(
+    _Appointment appointment,
+    AppointmentStatus newStatus,
+  ) async {
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your Partner session is not available. Please log in again.',
+          ),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+      return;
+    }
+
+    final databaseStatus = switch (newStatus) {
+      AppointmentStatus.confirmed => 'Confirmed',
+      AppointmentStatus.completed => 'Completed',
+      AppointmentStatus.cancelled => 'Cancelled',
+      AppointmentStatus.pending => 'Pending',
     };
-    final color = switch (newStatus) {
-      AppointmentStatus.confirmed  => AppColors.confirmedText,
-      AppointmentStatus.completed  => AppColors.sidebarActive,
-      AppointmentStatus.cancelled  => AppColors.cancelledText,
-      AppointmentStatus.pending    => AppColors.pendingText,
-    };
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(label,
-            style: AppTypography.bodySM.copyWith(color: Colors.white)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
+
+    try {
+      final row = await _repository.updateBookingStatus(
+        bookingId: appointment.id,
+        vendorId: vendorId,
+        status: databaseStatus,
+      );
+
+      final updatedAppointment = _Appointment.fromMap(row);
+
+      if (!mounted) return;
+
+      setState(() {
+        final index = _appointments.indexWhere(
+          (item) => item.id == updatedAppointment.id,
+        );
+
+        if (index >= 0) {
+          _appointments[index] = updatedAppointment;
+        }
+      });
+
+      final label = switch (updatedAppointment.status) {
+        AppointmentStatus.confirmed => 'Appointment confirmed',
+        AppointmentStatus.completed => 'Marked as completed',
+        AppointmentStatus.cancelled => 'Appointment cancelled',
+        AppointmentStatus.pending => 'Moved to pending',
+      };
+
+      final snackColor = switch (updatedAppointment.status) {
+        AppointmentStatus.confirmed => AppColors.confirmedText,
+        AppointmentStatus.completed => AppColors.sidebarActive,
+        AppointmentStatus.cancelled => AppColors.cancelledText,
+        AppointmentStatus.pending => AppColors.pendingText,
+      };
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            label,
+            style: AppTypography.bodySM.copyWith(
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: snackColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_friendlyError(e)),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+    }
+  }
+
+  void _viewAppointment(_Appointment appointment) {
+    final status = appointment.status.name[0].toUpperCase() +
+        appointment.status.name.substring(1);
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Appointment Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Booking ID: #${appointment.id}'),
+              const SizedBox(height: 10),
+              Text('Client: ${appointment.clientName}'),
+              const SizedBox(height: 6),
+              Text(
+                appointment.clientEmail.isEmpty
+                    ? 'Email: Not provided'
+                    : 'Email: ${appointment.clientEmail}',
+              ),
+              const SizedBox(height: 6),
+              Text('Service: ${appointment.service}'),
+              const SizedBox(height: 6),
+              Text('Date: ${appointment.date}'),
+              const SizedBox(height: 6),
+              Text('Time: ${appointment.time}'),
+              const SizedBox(height: 6),
+              Text('Status: $status'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('CLOSE'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -123,25 +276,44 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Appointment Request', style: AppTypography.pageTitle)
-                .animate()
-                .fadeIn(duration: 300.ms)
-                .slideY(begin: -0.1, end: 0, duration: 300.ms),
+            Text(
+              'Appointment Request',
+              style: AppTypography.pageTitle,
+            ).animate().fadeIn(duration: 300.ms).slideY(
+                  begin: -0.1,
+                  end: 0,
+                  duration: 300.ms,
+                ),
             const SizedBox(height: 16),
             Expanded(
-              child: LayoutBuilder(builder: (context, constraints) {
-                if (constraints.maxWidth >= 700) {
-                  return _DesktopTable(
-                    appointments: _appointments,
-                    onStatusChange: _updateStatus,
-                  );
-                } else {
-                  return _MobileCardList(
-                    appointments: _appointments,
-                    onStatusChange: _updateStatus,
-                  );
-                }
-              }),
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : _errorMessage != null
+                      ? _AppointmentsError(
+                          message: _errorMessage!,
+                          onRetry: _loadAppointments,
+                        )
+                      : _appointments.isEmpty
+                          ? const _EmptyAppointments()
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (constraints.maxWidth >= 700) {
+                                  return _DesktopTable(
+                                    appointments: _appointments,
+                                    onStatusChange: _updateStatus,
+                                    onView: _viewAppointment,
+                                  );
+                                }
+
+                                return _MobileCardList(
+                                  appointments: _appointments,
+                                  onStatusChange: _updateStatus,
+                                  onView: _viewAppointment,
+                                );
+                              },
+                            ),
             ),
           ],
         ),
@@ -150,14 +322,95 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 }
 
-// ─── Desktop Table View ────────────────────────────────────────────────────────
+class _AppointmentsError extends StatelessWidget {
+  const _AppointmentsError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 42,
+              color: AppColors.logout,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySM,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                'TRY AGAIN',
+                style: AppTypography.labelSM.copyWith(
+                  color: AppColors.buttonDark,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyAppointments extends StatelessWidget {
+  const _EmptyAppointments();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 42,
+              color: AppColors.textMuted,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'No appointments yet',
+              style: AppTypography.cardTitle,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'New appointment requests will appear here.',
+              style: AppTypography.bodySM,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DesktopTable extends StatelessWidget {
   const _DesktopTable({
     required this.appointments,
     required this.onStatusChange,
+    required this.onView,
   });
   final List<_Appointment> appointments;
   final void Function(_Appointment, AppointmentStatus) onStatusChange;
+  final void Function(_Appointment) onView;
 
   @override
   Widget build(BuildContext context) {
@@ -172,9 +425,10 @@ class _DesktopTable extends StatelessWidget {
               const Divider(height: 1, color: AppColors.borderLight),
               ...appointments.asMap().entries.map(
                     (e) => _DesktopRow(
-                      appointment: e.value, 
+                      appointment: e.value,
                       index: e.key,
                       onStatusChange: onStatusChange,
+                      onView: onView,
                     ),
                   ),
             ],
@@ -190,11 +444,21 @@ class _DesktopTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          Expanded(flex: 3, child: Text('CLIENT', style: AppTypography.tableHeader)),
-          Expanded(flex: 3, child: Text('SERVICE', style: AppTypography.tableHeader)),
-          Expanded(flex: 3, child: Text('DATE & TIME', style: AppTypography.tableHeader)),
-          Expanded(flex: 2, child: Text('STATUS', style: AppTypography.tableHeader)),
-          Expanded(flex: 3, child: Text('ACTION', style: AppTypography.tableHeader, textAlign: TextAlign.right)),
+          Expanded(
+              flex: 3, child: Text('CLIENT', style: AppTypography.tableHeader)),
+          Expanded(
+              flex: 3,
+              child: Text('SERVICE', style: AppTypography.tableHeader)),
+          Expanded(
+              flex: 3,
+              child: Text('DATE & TIME', style: AppTypography.tableHeader)),
+          Expanded(
+              flex: 2, child: Text('STATUS', style: AppTypography.tableHeader)),
+          Expanded(
+              flex: 3,
+              child: Text('ACTION',
+                  style: AppTypography.tableHeader,
+                  textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -206,10 +470,12 @@ class _DesktopRow extends StatelessWidget {
     required this.appointment,
     required this.index,
     required this.onStatusChange,
+    required this.onView,
   });
   final _Appointment appointment;
   final int index;
   final void Function(_Appointment, AppointmentStatus) onStatusChange;
+  final void Function(_Appointment) onView;
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +541,8 @@ class _DesktopRow extends StatelessWidget {
       ),
     )
         .animate()
-        .fadeIn(duration: 300.ms, delay: Duration(milliseconds: 60 + index * 50))
+        .fadeIn(
+            duration: 300.ms, delay: Duration(milliseconds: 60 + index * 50))
         .slideX(begin: 0.02, end: 0, duration: 250.ms);
   }
 
@@ -287,14 +554,16 @@ class _DesktopRow extends StatelessWidget {
               label: 'COMPLETE',
               bgColor: AppColors.sidebarActive,
               textColor: AppColors.sidebarActiveText,
-              onTap: () => onStatusChange(appointment, AppointmentStatus.completed)),
+              onTap: () =>
+                  onStatusChange(appointment, AppointmentStatus.completed)),
           const SizedBox(width: 8),
           _ActionButton(
               label: 'CANCEL',
               bgColor: AppColors.notReportedBg,
               textColor: AppColors.notReportedText,
               border: true,
-              onTap: () => onStatusChange(appointment, AppointmentStatus.cancelled)),
+              onTap: () =>
+                  onStatusChange(appointment, AppointmentStatus.cancelled)),
         ];
       case AppointmentStatus.pending:
         return [
@@ -302,36 +571,41 @@ class _DesktopRow extends StatelessWidget {
               label: 'CONFIRM',
               bgColor: AppColors.confirmedBg,
               textColor: AppColors.confirmedText,
-              onTap: () => onStatusChange(appointment, AppointmentStatus.confirmed)),
+              onTap: () =>
+                  onStatusChange(appointment, AppointmentStatus.confirmed)),
           const SizedBox(width: 8),
           _ActionButton(
               label: 'REJECT',
               bgColor: AppColors.notReportedBg,
               textColor: AppColors.notReportedText,
               border: true,
-              onTap: () => onStatusChange(appointment, AppointmentStatus.cancelled)),
+              onTap: () =>
+                  onStatusChange(appointment, AppointmentStatus.cancelled)),
         ];
       case AppointmentStatus.completed:
       case AppointmentStatus.cancelled:
         return [
-          const _ActionButton(
-              label: 'VIEW',
-              bgColor: Colors.transparent,
-              textColor: AppColors.textMuted,
-              isDisabled: true),
+          _ActionButton(
+            label: 'VIEW',
+            bgColor: Colors.transparent,
+            textColor: AppColors.textMuted,
+            onTap: () => onView(appointment),
+          ),
         ];
     }
   }
 }
 
-// ─── Mobile Card List ─────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Mobile Card List ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 class _MobileCardList extends StatelessWidget {
   const _MobileCardList({
     required this.appointments,
     required this.onStatusChange,
+    required this.onView,
   });
   final List<_Appointment> appointments;
   final void Function(_Appointment, AppointmentStatus) onStatusChange;
+  final void Function(_Appointment) onView;
 
   @override
   Widget build(BuildContext context) {
@@ -344,6 +618,7 @@ class _MobileCardList extends StatelessWidget {
           appointment: appointments[index],
           index: index,
           onStatusChange: onStatusChange,
+          onView: onView,
         );
       },
     );
@@ -355,10 +630,12 @@ class _MobileAppointmentCard extends StatelessWidget {
     required this.appointment,
     required this.index,
     required this.onStatusChange,
+    required this.onView,
   });
   final _Appointment appointment;
   final int index;
   final void Function(_Appointment, AppointmentStatus) onStatusChange;
+  final void Function(_Appointment) onView;
 
   @override
   Widget build(BuildContext context) {
@@ -376,8 +653,7 @@ class _MobileAppointmentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(appointment.clientName,
-                        style: AppTypography.labelLG),
+                    Text(appointment.clientName, style: AppTypography.labelLG),
                     const SizedBox(height: 2),
                     Text(appointment.clientEmail,
                         style: AppTypography.tableCellSub,
@@ -401,7 +677,7 @@ class _MobileAppointmentCard extends StatelessWidget {
           // Date
           _InfoRow(
             icon: Icons.calendar_today_rounded,
-            label: '${appointment.date}  •  ${appointment.time}',
+            label: '${appointment.date}  ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢  ${appointment.time}',
             valueColor: const Color(0xFFD4914A),
           ),
           // Actions
@@ -471,7 +747,8 @@ class _InfoRow extends StatelessWidget {
             label,
             style: AppTypography.bodySM.copyWith(
               color: valueColor ?? AppColors.textSecondary,
-              fontWeight: valueColor != null ? FontWeight.w600 : FontWeight.w400,
+              fontWeight:
+                  valueColor != null ? FontWeight.w600 : FontWeight.w400,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -505,7 +782,9 @@ class _MobileActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(6),
-          border: border ? Border.all(color: textColor.withValues(alpha: 0.4)) : null,
+          border: border
+              ? Border.all(color: textColor.withValues(alpha: 0.4))
+              : null,
         ),
         alignment: Alignment.center,
         child: Text(label,
@@ -516,7 +795,7 @@ class _MobileActionButton extends StatelessWidget {
   }
 }
 
-// ─── Shared sub-widgets ────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Shared sub-widgets ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
   final AppointmentStatus status;
@@ -529,20 +808,34 @@ class _StatusChip extends StatelessWidget {
 
     switch (status) {
       case AppointmentStatus.confirmed:
-        bg = AppColors.confirmedBg; text = AppColors.confirmedText; label = 'CONFIRMED'; break;
+        bg = AppColors.confirmedBg;
+        text = AppColors.confirmedText;
+        label = 'CONFIRMED';
+        break;
       case AppointmentStatus.completed:
-        bg = AppColors.completedBg; text = AppColors.completedText; label = 'COMPLETED'; break;
+        bg = AppColors.completedBg;
+        text = AppColors.completedText;
+        label = 'COMPLETED';
+        break;
       case AppointmentStatus.cancelled:
-        bg = AppColors.cancelledBg; text = AppColors.cancelledText; label = 'CANCELLED'; break;
+        bg = AppColors.cancelledBg;
+        text = AppColors.cancelledText;
+        label = 'CANCELLED';
+        break;
       case AppointmentStatus.pending:
-        bg = AppColors.pendingBg; text = AppColors.pendingText; label = 'PENDING'; break;
+        bg = AppColors.pendingBg;
+        text = AppColors.pendingText;
+        label = 'PENDING';
+        break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(4)),
       child: Text(label,
-          style: AppTypography.labelXS.copyWith(color: text, letterSpacing: 0.5)),
+          style:
+              AppTypography.labelXS.copyWith(color: text, letterSpacing: 0.5)),
     );
   }
 }
@@ -552,33 +845,36 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     required this.bgColor,
     required this.textColor,
-    this.border     = false,
-    this.isDisabled = false,
+    this.border = false,
     this.onTap,
   });
   final String label;
   final Color bgColor;
   final Color textColor;
   final bool border;
-  final bool isDisabled;
+
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: isDisabled ? null : onTap,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(4),
-          border: border ? Border.all(color: textColor.withValues(alpha: 0.3)) : null,
+          border: border
+              ? Border.all(color: textColor.withValues(alpha: 0.3))
+              : null,
         ),
         child: Text(label,
             textAlign: TextAlign.center,
             style: AppTypography.labelXS.copyWith(
-                color: textColor, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                color: textColor,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4)),
       ),
     );
   }

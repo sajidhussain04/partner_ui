@@ -1,57 +1,26 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/routes/app_router.dart';
+import '../../../../core/config/partner_session.dart';
 import '../../../../shared/widgets/auth_widgets.dart';
 
-// ─── Service data ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Service data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ServiceEntry {
+  final String category;
   final String name;
   final int price;
   final int duration;
-  const _ServiceEntry(this.name, this.price, this.duration);
+  const _ServiceEntry(this.category, this.name, this.price, this.duration);
 }
-
-const _kCategories = [
-  'Hair Care',
-  'Beard Grooming',
-  'Skin Care',
-  'Spa & Wellness',
-  'Nail Care',
-  'Makeup',
-];
-
-const _kSkillsByCategory = {
-  'Hair Care': [
-    'Haircut', 'Blowdry', 'Hair Colouring', 'Balayage',
-    'Keratin Treatment', 'Deep Conditioning',
-  ],
-  'Beard Grooming': [
-    'Beard Coloring', 'Beard Styling', 'Beard Trim',
-    'Clean Shave', 'Moustache Styling', 'Special Shave',
-  ],
-  'Skin Care': [
-    'Facial', 'Clean-up', 'Detan', 'Bleach',
-    'Waxing', 'Threading',
-  ],
-  'Spa & Wellness': [
-    'Head Massage', 'Body Massage', 'Foot Massage',
-    'Moroccan Bath', 'Steam & Sauna',
-  ],
-  'Nail Care': [
-    'Manicure', 'Pedicure', 'Nail Art', 'Gel Polish',
-  ],
-  'Makeup': [
-    'Party Makeup', 'Bridal Makeup', 'Eye Makeup',
-  ],
-};
 
 const _kGenders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
-// ─── Screen ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -60,9 +29,45 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  int _step = 0; // 0–3
+  @override
+  void initState() {
+    super.initState();
+    _loadServiceData();
+  }
 
-  // ── Step 1 – Account ──────────────────────────────
+  Future<void> _loadServiceData() async {
+    try {
+      final client = Supabase.instance.client;
+      final categoryRows = await client.from('service_categories').select('name').order('id');
+      final skillRows = await client.from('service_skills').select('category_name, name').order('id');
+
+      final categories = categoryRows.map<String>((row) => row['name'] as String).toList();
+      final skillsByCategory = <String, List<String>>{};
+
+      for (final row in skillRows) {
+        final category = row['category_name'] as String;
+        final skill = row['name'] as String;
+        skillsByCategory.putIfAbsent(category, () => []).add(skill);
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _categories = categories;
+        _skillsByCategory = skillsByCategory;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _step2Error = 'Unable to load services. Please try again.';
+      });
+    }
+  }
+  List<String> _categories = [];
+  Map<String, List<String>> _skillsByCategory = {};
+  int _step = 0; // 0â€“3
+
+  // â”€â”€ Step 1 â€“ Account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final _nameCtrl        = TextEditingController();
   final _shopCtrl        = TextEditingController();
   final _emailCtrl       = TextEditingController();
@@ -77,7 +82,7 @@ class _SignupScreenState extends State<SignupScreen> {
   static final _emailRegex =
       RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w]{2,}$');
 
-  // ── Step 2 – Services ─────────────────────────────
+  // â”€â”€ Step 2 â€“ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   String? _selectedCategory;
   String? _selectedSkill;
   final _priceCtrl    = TextEditingController();
@@ -85,14 +90,14 @@ class _SignupScreenState extends State<SignupScreen> {
   final List<_ServiceEntry> _services = [];
   String? _step2Error;
 
-  // ── Step 3 – Address ──────────────────────────────
+  // â”€â”€ Step 3 â€“ Address â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final _cityCtrl     = TextEditingController();
   final _addressCtrl  = TextEditingController();
   final _pincodeCtrl  = TextEditingController();
   final _chairsCtrl   = TextEditingController();
   String? _step3Error;
 
-  // ── Submit ─────────────────────────────────────────
+  // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   bool _loading = false;
 
   @override
@@ -105,7 +110,7 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  // ── Validation ─────────────────────────────────────
+  // â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   bool _validateStep1() {
     if (_nameCtrl.text.trim().isEmpty ||
         _shopCtrl.text.trim().isEmpty ||
@@ -120,7 +125,7 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _step1Error = 'Please enter a valid email address.');
       return false;
     }
-    if (_mobileCtrl.text.trim().length < 10) {
+    if (_mobileCtrl.text.trim().length != 10) {
       setState(() => _step1Error = 'Enter a valid 10-digit mobile number.');
       return false;
     }
@@ -167,10 +172,95 @@ class _SignupScreenState extends State<SignupScreen> {
   void _back() => setState(() => _step--);
 
   Future<void> _submit() async {
-    setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    AuthSession.isLoggedIn = true;
-    if (mounted) context.go(AppRoutes.overview);
+    if (!_validateStep1() || !_validateStep2() || !_validateStep3()) {
+      return;
+    }
+
+    final client = Supabase.instance.client;
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+
+    final chairs = int.tryParse(_chairsCtrl.text.trim());
+    if (chairs == null || chairs < 1) {
+      setState(() {
+        _step3Error = 'Enter a valid number of chairs.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _step1Error = null;
+      _step2Error = null;
+      _step3Error = null;
+    });
+
+    try {
+      final authResponse = await client.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final authUser = authResponse.user;
+      final session = authResponse.session;
+
+      if (authUser == null) {
+        throw Exception('Unable to create the account.');
+      }
+
+      if (session == null) {
+        setState(() {
+          _step1Error =
+              'Account created. Please confirm your email, then login to continue.';
+        });
+        return;
+      }
+
+      final servicesPayload = _services
+          .map(
+            (service) => {
+              'name': service.name,
+              'category': service.category,
+              'price': service.price,
+              'duration': service.duration.toString(),
+            },
+          )
+          .toList();
+
+      await client.rpc(
+        'create_partner_profile',
+        params: {
+          'p_name': _nameCtrl.text.trim(),
+          'p_city': _cityCtrl.text.trim(),
+          'p_address': _addressCtrl.text.trim(),
+          'p_pincode': _pincodeCtrl.text.trim(),
+          'p_shop_name': _shopCtrl.text.trim(),
+          'p_mobile': _mobileCtrl.text.trim(),
+          'p_gender': _gender,
+          'p_chair_count': chairs,
+          'p_services': servicesPayload,
+        },
+      );
+
+      await PartnerSession.loadProfile();
+
+      if (!mounted) return;
+      context.go(AppRoutes.approval);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _step1Error = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _step3Error = 'Signup failed. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   void _addService() {
@@ -182,7 +272,7 @@ class _SignupScreenState extends State<SignupScreen> {
     final price    = int.tryParse(_priceCtrl.text) ?? 0;
     final duration = int.tryParse(_durationCtrl.text) ?? 0;
     setState(() {
-      _services.add(_ServiceEntry(_selectedSkill!, price, duration));
+      _services.add(_ServiceEntry(_selectedCategory!, _selectedSkill!, price, duration));
       _selectedCategory = null;
       _selectedSkill    = null;
       _priceCtrl.clear();
@@ -261,8 +351,8 @@ class _SignupScreenState extends State<SignupScreen> {
               onLogin: () => context.go(AppRoutes.login),
             ),
           1 => _Step2Services(
-              categories: _kCategories,
-              skillsByCategory: _kSkillsByCategory,
+              categories: _categories,
+              skillsByCategory: _skillsByCategory,
               selectedCategory: _selectedCategory,
               selectedSkill: _selectedSkill,
               priceCtrl: _priceCtrl,
@@ -308,7 +398,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-// ─── Step Progress Indicator ───────────────────────────────────────────────────
+// â”€â”€â”€ Step Progress Indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _StepBar extends StatelessWidget {
   const _StepBar({required this.current});
   final int current;
@@ -362,7 +452,7 @@ class _StepBar extends StatelessWidget {
   }
 }
 
-// ─── Shared header ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Shared header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _FormHeader extends StatelessWidget {
   const _FormHeader({required this.step});
   final int step;
@@ -386,7 +476,7 @@ class _FormHeader extends StatelessWidget {
   }
 }
 
-// ─── Shared login link ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Shared login link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _LoginLink extends StatelessWidget {
   const _LoginLink({required this.onTap});
   final VoidCallback onTap;
@@ -409,7 +499,7 @@ class _LoginLink extends StatelessWidget {
   }
 }
 
-// ─── Shared nav buttons ────────────────────────────────────────────────────────
+// â”€â”€â”€ Shared nav buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _NavButtons extends StatelessWidget {
   const _NavButtons({
     required this.onNext,
@@ -518,7 +608,7 @@ class _OutlineButton extends StatelessWidget {
   }
 }
 
-// ─── Styled text field ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Styled text field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _Field extends StatelessWidget {
   const _Field({
     required this.hint,
@@ -575,7 +665,7 @@ class _Field extends StatelessWidget {
   }
 }
 
-// ─── Styled dropdown ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Styled dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _DropField<T> extends StatelessWidget {
   const _DropField({
     required this.hint,
@@ -630,9 +720,9 @@ class _DropField<T> extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STEP 1 – ACCOUNT
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 1 â€“ ACCOUNT
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class _Step1Account extends StatelessWidget {
   const _Step1Account({
     required this.nameCtrl,
@@ -757,9 +847,9 @@ class _Step1Account extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STEP 2 – SERVICES
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 2 â€“ SERVICES
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class _Step2Services extends StatelessWidget {
   const _Step2Services({
     required this.categories,
@@ -800,7 +890,7 @@ class _Step2Services extends StatelessWidget {
       children: [
         const _FormHeader(step: 1),
 
-        // ── Category ──────────────────────────────────
+        // â”€â”€ Category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         _DropField<String>(
           hint: 'Select Service Category',
           value: selectedCategory,
@@ -810,7 +900,7 @@ class _Step2Services extends StatelessWidget {
         ).animate().fadeIn(duration: 350.ms, delay: 100.ms),
         const SizedBox(height: 12),
 
-        // ── Skill ─────────────────────────────────────
+        // â”€â”€ Skill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         AnimatedOpacity(
           duration: const Duration(milliseconds: 200),
           opacity: selectedCategory != null ? 1 : 0.4,
@@ -824,12 +914,12 @@ class _Step2Services extends StatelessWidget {
         ).animate().fadeIn(duration: 350.ms, delay: 140.ms),
         const SizedBox(height: 12),
 
-        // ── Price & Duration ──────────────────────────
+        // â”€â”€ Price & Duration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Row(
           children: [
             Expanded(
               child: _Field(
-                hint: 'Price (₹)',
+                hint: 'Price (â‚¹)',
                 controller: priceCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -848,7 +938,7 @@ class _Step2Services extends StatelessWidget {
         ).animate().fadeIn(duration: 350.ms, delay: 180.ms),
         const SizedBox(height: 14),
 
-        // ── Add button ────────────────────────────────
+        // â”€â”€ Add button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -873,7 +963,7 @@ class _Step2Services extends StatelessWidget {
               .animate().fadeIn(duration: 250.ms),
         ],
 
-        // ── Service chips ─────────────────────────────
+        // â”€â”€ Service chips â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (services.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('ADDED SERVICES (${services.length})',
@@ -924,7 +1014,7 @@ class _ServiceChip extends StatelessWidget {
           Expanded(
             child: Text(service.name, style: AppTypography.bodyMD),
           ),
-          Text('₹${service.price}',
+          Text('â‚¹${service.price}',
               style: AppTypography.priceLG
                   .copyWith(fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(width: 6),
@@ -943,9 +1033,9 @@ class _ServiceChip extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STEP 3 – ADDRESS
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 3 â€“ ADDRESS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class _Step3Address extends StatelessWidget {
   const _Step3Address({
     required this.cityCtrl,
@@ -1028,9 +1118,9 @@ class _Step3Address extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STEP 4 – REVIEW
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// STEP 4 â€“ REVIEW
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class _Step4Review extends StatelessWidget {
   const _Step4Review({
     required this.name,
@@ -1061,7 +1151,7 @@ class _Step4Review extends StatelessWidget {
       children: [
         const _FormHeader(step: 3),
 
-        // ── Business details card ──────────────────────
+        // â”€â”€ Business details card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         _ReviewCard(
           title: 'BUSINESS DETAILS',
           child: Column(
@@ -1075,20 +1165,20 @@ class _Step4Review extends StatelessWidget {
               _ReviewRow('Email', email),
               _ReviewRow('Mobile', mobile),
               _ReviewRow('Gender', gender),
-              const _ReviewRow('Password', '••••••••'),
+              const _ReviewRow('Password', 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'),
             ],
           ),
         ).animate().fadeIn(duration: 380.ms, delay: 80.ms),
         const SizedBox(height: 16),
 
-        // ── Services card ─────────────────────────────
+        // â”€â”€ Services card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         _ReviewCard(
           title: 'SERVICES ADDED (${services.length})',
           child: Column(
             children: services
                 .map((s) => _ReviewRow(
                       s.name,
-                      '₹${s.price} (${s.duration} min)',
+                      'â‚¹${s.price} (${s.duration} min)',
                     ))
                 .toList(),
           ),
@@ -1165,7 +1255,7 @@ class _ReviewRow extends StatelessWidget {
   }
 }
 
-// ─── Brand Panel (wide) ────────────────────────────────────────────────────────
+// â”€â”€â”€ Brand Panel (wide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _BrandPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -1175,7 +1265,7 @@ class _BrandPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Stylewow Logo ──────────────────────────────────────────────
+          // â”€â”€ Stylewow Logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Image.asset(
             'assets/images/LOGO-c7veMtdM.png',
             height: 52,
@@ -1196,10 +1286,10 @@ class _BrandPanel extends StatelessWidget {
           ).animate().fadeIn(duration: 600.ms, delay: 200.ms),
           const SizedBox(height: 40),
           ...[
-            '✓  Free to get started',
-            '✓  No commission on first 30 bookings',
-            '✓  24 / 7 partner support',
-            '✓  Instant payout setup',
+            'âœ“  Free to get started',
+            'âœ“  No commission on first 30 bookings',
+            'âœ“  24 / 7 partner support',
+            'âœ“  Instant payout setup',
           ].asMap().entries.map((e) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(e.value,
@@ -1215,7 +1305,7 @@ class _BrandPanel extends StatelessWidget {
   }
 }
 
-// ─── Mobile Header ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Mobile Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _MobileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -1226,7 +1316,7 @@ class _MobileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Stylewow Logo ──────────────────────────────────────────────
+          // â”€â”€ Stylewow Logo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Image.asset(
             'assets/images/LOGO-c7veMtdM.png',
             height: 40,
@@ -1239,3 +1329,17 @@ class _MobileHeader extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

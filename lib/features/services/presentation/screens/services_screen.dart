@@ -1,53 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../../core/config/partner_session.dart';
+import '../../../../core/data/partner_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 
-// ─── Data model ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Data model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _Service {
   _Service({
+    required this.id,
     required this.category,
     required this.name,
     required this.price,
     required this.duration,
-    this.description = '',
+    this.imageUrl,
   });
+
+  final int id;
   String category;
   String name;
-  int price;
-  int duration;
-  String description;
+  num price;
+  String duration;
+  String? imageUrl;
+
+  factory _Service.fromMap(Map<String, dynamic> map) {
+    return _Service(
+      id: (map['id'] as num).toInt(),
+      category: map['category']?.toString() ?? '',
+      name: map['title']?.toString() ?? '',
+      price: _parsePrice(map['price']),
+      duration: map['duration']?.toString() ?? '',
+      imageUrl: map['image_url']?.toString(),
+    );
+  }
+
+  static num _parsePrice(dynamic value) {
+    if (value is num) {
+      return value;
+    }
+
+    return num.tryParse(value?.toString() ?? '') ?? 0;
+  }
 }
 
-final List<_Service> _mockServices = [
-  _Service(
-    category: "HAIR CARE",
-    name: 'Balayage Highlights',
-    price: 2500,
-    duration: 90,
-  ),
-  _Service(
-    category: "BEARD GROOMING",
-    name: 'Royal Beard Trim & Style',
-    price: 450,
-    duration: 30,
-  ),
-  _Service(
-    category: "SPA & WELLNESS",
-    name: 'Moroccan Hair Spa',
-    price: 1200,
-    duration: 60,
-  ),
-  _Service(
-    category: "SKIN CARE",
-    name: 'Classic Luxury Facial',
-    price: 800,
-    duration: 45,
-  ),
-];
-
-// ─── Screen ────────────────────────────────────────────────────────────────────
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
 
@@ -56,68 +52,254 @@ class ServicesScreen extends StatefulWidget {
 }
 
 class _ServicesScreenState extends State<ServicesScreen> {
-  final List<_Service> _services = List.from(_mockServices);
-  bool _showAddModal  = false;
-  _Service? _editingService; // non-null when editing an existing service
+  final PartnerRepository _repository = PartnerRepository.instance;
+
+  List<_Service> _services = [];
+  bool _loading = true;
+  String? _errorMessage;
+
+  bool _showAddModal = false;
+  _Service? _editingService;
+
+  int? get _vendorId => PartnerSession.vendorId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServices();
+  }
+
+  Future<void> _loadServices() async {
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage =
+            'Your Partner session is not available. Please log in again.';
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rows = await _repository.vendorServices(vendorId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _services = rows.map(_Service.fromMap).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _errorMessage = _friendlyError(e);
+      });
+    }
+  }
+
+  String _friendlyError(Object error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('permission') ||
+        message.contains('row-level security') ||
+        message.contains('rls')) {
+      return 'You do not have permission to access your services.';
+    }
+
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('network')) {
+      return 'Unable to connect to the server. Check your internet connection.';
+    }
+
+    return 'Unable to load services. Please try again.';
+  }
 
   void _openAddPanel() {
     setState(() {
-      _editingService  = null;
-      _showAddModal    = true;
+      _editingService = null;
+      _showAddModal = true;
     });
   }
 
   void _openEditPanel(_Service service) {
     setState(() {
       _editingService = service;
-      _showAddModal   = true;
+      _showAddModal = true;
     });
   }
 
-  void _onSave(_Service saved) {
-    setState(() {
-      if (_editingService != null) {
-        final idx = _services.indexOf(_editingService!);
-        if (idx != -1) _services[idx] = saved;
-      } else {
-        _services.add(saved);
-      }
-      _showAddModal   = false;
-      _editingService = null;
-    });
+  Future<void> _onSave(_Service saved) async {
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your Partner session is not available. Please log in again.',
+          ),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final row = _editingService == null
+          ? await _repository.createService(
+              vendorId: vendorId,
+              title: saved.name,
+              category: saved.category,
+              price: saved.price,
+              duration: saved.duration,
+              imageUrl: saved.imageUrl,
+            )
+          : await _repository.updateService(
+              serviceId: _editingService!.id,
+              vendorId: vendorId,
+              title: saved.name,
+              category: saved.category,
+              price: saved.price,
+              duration: saved.duration,
+              imageUrl: saved.imageUrl,
+            );
+
+      final updatedService = _Service.fromMap(row);
+
+      if (!mounted) return;
+
+      setState(() {
+        if (_editingService != null) {
+          final index = _services.indexWhere(
+            (service) => service.id == _editingService!.id,
+          );
+
+          if (index >= 0) {
+            _services[index] = updatedService;
+          }
+        } else {
+          _services.add(updatedService);
+        }
+
+        _showAddModal = false;
+        _editingService = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_friendlyError(e)),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+    }
   }
 
-  void _onDelete(_Service service) {
-    showDialog<bool>(
+  Future<void> _onDelete(_Service service) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Delete Service', style: AppTypography.cardTitle),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Text(
+          'Delete Service',
+          style: AppTypography.cardTitle,
+        ),
         content: Text(
-          'Remove "${service.name}" from your services?',
+          'Remove "" from your services?',
           style: AppTypography.bodySM,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('CANCEL',
-                style: AppTypography.labelSM
-                    .copyWith(color: AppColors.textMuted)),
+            child: Text(
+              'CANCEL',
+              style: AppTypography.labelSM.copyWith(
+                color: AppColors.textMuted,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('DELETE',
-                style: AppTypography.labelSM
-                    .copyWith(color: AppColors.logout)),
+            child: Text(
+              'DELETE',
+              style: AppTypography.labelSM.copyWith(
+                color: AppColors.logout,
+              ),
+            ),
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        setState(() => _services.remove(service));
+    );
+
+    if (confirmed != true) return;
+
+    final vendorId = _vendorId;
+
+    if (vendorId == null) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your Partner session is not available. Please log in again.',
+          ),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await _repository.deleteService(
+        serviceId: service.id,
+        vendorId: vendorId,
+      );
+
+      final remainingRows = await _repository.vendorServices(vendorId);
+
+      if (!mounted) return;
+
+      final remainingServices = remainingRows.map(_Service.fromMap).toList();
+
+      final stillExists = remainingServices.any(
+        (item) => item.id == service.id,
+      );
+
+      if (stillExists) {
+        throw Exception(
+          'The service could not be deleted. Please try again.',
+        );
       }
-    });
+
+      setState(() {
+        _services = remainingServices;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_friendlyError(e)),
+          backgroundColor: AppColors.logout,
+        ),
+      );
+    }
   }
 
   @override
@@ -144,13 +326,22 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 ),
                 const SizedBox(height: 24),
                 Expanded(
-                  child: _services.isEmpty
-                      ? const _EmptyServices()
-                      : _ServiceGrid(
-                          services: _services,
-                          onEdit: _openEditPanel,
-                          onDelete: _onDelete,
-                        ),
+                  child: _loading
+                      ? const Center(
+                          child: CircularProgressIndicator(),
+                        )
+                      : _errorMessage != null
+                          ? _ServicesError(
+                              message: _errorMessage!,
+                              onRetry: _loadServices,
+                            )
+                          : _services.isEmpty
+                              ? const _EmptyServices()
+                              : _ServiceGrid(
+                                  services: _services,
+                                  onEdit: _openEditPanel,
+                                  onDelete: _onDelete,
+                                ),
                 ),
               ],
             ),
@@ -159,7 +350,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
             _AddServiceSheet(
               existing: _editingService,
               onClose: () => setState(() {
-                _showAddModal   = false;
+                _showAddModal = false;
                 _editingService = null;
               }),
               onSave: _onSave,
@@ -170,7 +361,52 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 }
 
-// ─── Service Grid ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Service Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _ServicesError extends StatelessWidget {
+  const _ServicesError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 42,
+              color: AppColors.logout,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySM,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(
+                'TRY AGAIN',
+                style: AppTypography.labelSM.copyWith(
+                  color: AppColors.buttonDark,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ServiceGrid extends StatelessWidget {
   const _ServiceGrid({
     required this.services,
@@ -205,7 +441,7 @@ class _ServiceGrid extends StatelessWidget {
   }
 }
 
-// ─── Service Card ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Service Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _ServiceCard extends StatefulWidget {
   const _ServiceCard({
     required this.service,
@@ -299,8 +535,8 @@ class _ServiceCardState extends State<_ServiceCard> {
                   const SizedBox(width: 10),
                   Text(
                     '${widget.service.duration} MIN',
-                    style: AppTypography.labelSM
-                        .copyWith(color: AppColors.textMuted, letterSpacing: 0.5),
+                    style: AppTypography.labelSM.copyWith(
+                        color: AppColors.textMuted, letterSpacing: 0.5),
                   ),
                 ],
               ),
@@ -322,7 +558,7 @@ class _ServiceCardState extends State<_ServiceCard> {
   }
 }
 
-// ─── Reusable sub-widgets ──────────────────────────────────────────────────────
+// â”€â”€â”€ Reusable sub-widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CategoryBadge extends StatelessWidget {
   const _CategoryBadge({required this.label});
   final String label;
@@ -390,7 +626,8 @@ class _AddServiceButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.add_rounded, color: AppColors.buttonDarkText, size: 18),
+            const Icon(Icons.add_rounded,
+                color: AppColors.buttonDarkText, size: 18),
             const SizedBox(width: 8),
             Text('ADD SERVICE', style: AppTypography.buttonText),
           ],
@@ -419,7 +656,7 @@ class _EmptyServices extends StatelessWidget {
   }
 }
 
-// ─── Add / Edit Service Panel ──────────────────────────────────────────────────
+// â”€â”€â”€ Add / Edit Service Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _AddServiceSheet extends StatefulWidget {
   const _AddServiceSheet({
     required this.onClose,
@@ -427,7 +664,7 @@ class _AddServiceSheet extends StatefulWidget {
     this.existing,
   });
   final VoidCallback onClose;
-  final ValueChanged<_Service> onSave;
+  final Future<void> Function(_Service) onSave;
   final _Service? existing; // non-null when editing
 
   @override
@@ -439,61 +676,67 @@ class _AddServiceSheetState extends State<_AddServiceSheet> {
   late final TextEditingController _categoryCtrl;
   late final TextEditingController _priceCtrl;
   late final TextEditingController _durationCtrl;
-  late final TextEditingController _descCtrl;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     final e = widget.existing;
-    _nameCtrl     = TextEditingController(text: e?.name ?? '');
+    _nameCtrl = TextEditingController(text: e?.name ?? '');
     _categoryCtrl = TextEditingController(text: e?.category ?? '');
-    _priceCtrl    = TextEditingController(text: e != null ? '${e.price}' : '');
-    _durationCtrl = TextEditingController(text: e != null ? '${e.duration}' : '');
-    _descCtrl     = TextEditingController(text: e?.description ?? '');
+    _priceCtrl = TextEditingController(text: e != null ? '${e.price}' : '');
+    _durationCtrl = TextEditingController(text: e != null ? e.duration : '');
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose(); _categoryCtrl.dispose();
-    _priceCtrl.dispose(); _durationCtrl.dispose(); _descCtrl.dispose();
+    _nameCtrl.dispose();
+    _categoryCtrl.dispose();
+    _priceCtrl.dispose();
+    _durationCtrl.dispose();
     super.dispose();
   }
 
-  void _handleSave() {
-    final name     = _nameCtrl.text.trim();
+  Future<void> _handleSave() async {
+    final name = _nameCtrl.text.trim();
     final category = _categoryCtrl.text.trim();
-    final price    = int.tryParse(_priceCtrl.text.trim());
-    final duration = int.tryParse(_durationCtrl.text.trim());
+    final price = num.tryParse(_priceCtrl.text.trim());
+    final duration = _durationCtrl.text.trim();
 
-    if (name.isEmpty || category.isEmpty ||
-        _priceCtrl.text.trim().isEmpty || _durationCtrl.text.trim().isEmpty) {
+    if (name.isEmpty ||
+        category.isEmpty ||
+        _priceCtrl.text.trim().isEmpty ||
+        duration.isEmpty) {
       setState(() => _error = 'Please fill in all required fields.');
       return;
     }
+
     if (price == null || price <= 0) {
       setState(() => _error = 'Enter a valid price.');
       return;
     }
-    if (duration == null || duration <= 0) {
+
+    final durationMinutes = int.tryParse(duration);
+
+    if (durationMinutes == null || durationMinutes <= 0) {
       setState(() => _error = 'Enter a valid duration in minutes.');
       return;
     }
 
-    widget.onSave(_Service(
+    await widget.onSave(_Service(
+      id: widget.existing?.id ?? 0,
       name: name,
       category: category.toUpperCase(),
       price: price,
       duration: duration,
-      description: _descCtrl.text.trim(),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final panelWidth  = screenWidth < 440 ? screenWidth : 420.0;
-    final isEdit      = widget.existing != null;
+    final panelWidth = screenWidth < 440 ? screenWidth : 420.0;
+    final isEdit = widget.existing != null;
 
     return GestureDetector(
       onTap: widget.onClose,
@@ -526,7 +769,6 @@ class _AddServiceSheetState extends State<_AddServiceSheet> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
                   _FormField(
                     label: 'SERVICE NAME',
                     hint: 'e.g. Haircut',
@@ -567,13 +809,6 @@ class _AddServiceSheetState extends State<_AddServiceSheet> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _FormField(
-                    label: 'DESCRIPTION',
-                    hint: 'Brief description…',
-                    controller: _descCtrl,
-                    maxLines: 3,
-                  ),
-
                   if (_error != null) ...[
                     const SizedBox(height: 12),
                     Container(
@@ -597,7 +832,6 @@ class _AddServiceSheetState extends State<_AddServiceSheet> {
                       ),
                     ),
                   ],
-
                   const Spacer(),
                   SizedBox(
                     width: double.infinity,
@@ -622,7 +856,11 @@ class _AddServiceSheetState extends State<_AddServiceSheet> {
               ),
             )
                 .animate()
-                .slideX(begin: 0.12, end: 0, duration: 280.ms, curve: Curves.easeOut)
+                .slideX(
+                    begin: 0.12,
+                    end: 0,
+                    duration: 280.ms,
+                    curve: Curves.easeOut)
                 .fadeIn(duration: 200.ms),
           ),
         ),
@@ -636,14 +874,12 @@ class _FormField extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.controller,
-    this.maxLines = 1,
     this.keyboardType,
     this.inputFormatters,
   });
   final String label;
   final String hint;
   final TextEditingController controller;
-  final int maxLines;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
 
@@ -656,7 +892,7 @@ class _FormField extends StatelessWidget {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
-          maxLines: maxLines,
+          maxLines: 1,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           style: AppTypography.bodyMD,
